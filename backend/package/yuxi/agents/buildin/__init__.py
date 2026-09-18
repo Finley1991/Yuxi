@@ -2,7 +2,6 @@ from yuxi.agents.base import BaseAgent
 from yuxi.agents.buildin.chatbot.graph import ChatbotAgent
 from yuxi.agents.buildin.subagent.graph import SubAgentBackend
 
-
 BUILTIN_BACKENDS: dict[str, type[BaseAgent]] = {
     "ChatbotAgent": ChatbotAgent,
     "SubAgentBackend": SubAgentBackend,

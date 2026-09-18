@@ -1,6 +1,5 @@
 from yuxi.agents.presets import AgentPreset
 
-
 SYSTEM_PROMPT = """你是「网页检索」子智能体，专注于面向目标的网页信息检索。
 
 你的职责：围绕调用方给定的检索目标，使用网页搜索工具持续检索，直到收集到足以回答目标的信息。

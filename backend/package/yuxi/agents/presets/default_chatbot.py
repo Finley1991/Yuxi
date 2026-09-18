@@ -1,6 +1,5 @@
 from yuxi.agents.presets import AgentPreset
 
-
 PRESET = AgentPreset(
     slug="default-chatbot",
     name="智能助手",

@@ -23,8 +23,8 @@ import yaml
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from yuxi.agents.skills.buildin import BUILTIN_SKILLS_DIR
 from yuxi.agents.mcp.service import get_enabled_mcp_server_slugs
+from yuxi.agents.skills.buildin import BUILTIN_SKILLS_DIR
 from yuxi.agents.skills.repository import SkillRepository
 from yuxi.config import (
     get_runtime_dir,

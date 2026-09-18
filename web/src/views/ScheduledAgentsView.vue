@@ -286,17 +286,21 @@ defineExpose({ beforeLeave: flushAutoSave, loading, saving })
           search-placeholder="搜索已安排任务"
         >
           <template #actions>
-            <a-button type="primary" class="lucide-icon-btn" @click="openCreate">
-              <Plus :size="14" />
-              新建任务
-            </a-button>
             <a-button
               class="lucide-icon-btn"
-              :loading="loading"
+              :disabled="loading"
               aria-label="刷新定时任务"
               @click="load()"
             >
-              <RefreshCw :size="14" />
+              <RefreshCw
+                :size="14"
+                class="page-shoulder-refresh-icon"
+                :class="{ 'is-spinning': loading }"
+              />
+            </a-button>
+            <a-button type="primary" class="lucide-icon-btn" @click="openCreate">
+              <Plus :size="14" />
+              新建任务
             </a-button>
           </template>
         </PageShoulder>

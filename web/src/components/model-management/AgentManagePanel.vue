@@ -148,12 +148,21 @@ defineExpose({
   <div class="agent-manage-panel">
     <PageShoulder v-model:search="searchQuery" search-placeholder="搜索智能体...">
       <template #actions>
+        <a-button
+          class="lucide-icon-btn"
+          @click="loadAgents"
+          :disabled="agentLoading"
+          aria-label="刷新智能体"
+        >
+          <RefreshCw
+            :size="14"
+            class="page-shoulder-refresh-icon"
+            :class="{ 'is-spinning': agentLoading }"
+          />
+        </a-button>
         <a-button type="primary" class="lucide-icon-btn" @click="openCreateAgentModal">
           <Plus :size="14" />
           新增智能体
-        </a-button>
-        <a-button class="lucide-icon-btn" @click="loadAgents" :loading="agentLoading">
-          <RefreshCw :size="14" :class="{ spinning: agentLoading }" />
         </a-button>
       </template>
     </PageShoulder>

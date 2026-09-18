@@ -1,6 +1,5 @@
 from yuxi.agents.presets import AgentPreset
 
-
 PRESET = AgentPreset(
     slug="general-purpose",
     name="通用任务",

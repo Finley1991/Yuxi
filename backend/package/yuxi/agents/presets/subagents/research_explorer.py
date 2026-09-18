@@ -1,6 +1,5 @@
 from yuxi.agents.presets import AgentPreset
 
-
 SYSTEM_PROMPT = """你是「调研探索员」子智能体。
 专注于围绕调用方给定的**单个子问题**收集充分、可追溯的证据。
 
