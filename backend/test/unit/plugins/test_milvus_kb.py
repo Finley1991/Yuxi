@@ -29,12 +29,12 @@ def make_query_config() -> KnowledgeBaseConfig:
 
 
 class FakeHit:
-    def __init__(self, content: str, distance: float):
+    def __init__(self, content: str, distance: float, file_id: str = "file-1"):
         self.distance = distance
         self.entity = {
             "content": content,
             "chunk_id": "chunk-1",
-            "file_id": "file-1",
+            "file_id": file_id,
             "chunk_index": 0,
         }
 
@@ -66,9 +66,10 @@ def make_kb(collection: FakeCollection) -> MilvusKB:
         del kb_id, embedding_model_spec
         return collection
 
-    async def hydrate_chunk_sources(kb_id: str, chunks: list[dict]) -> None:
+    async def hydrate_chunk_sources(kb_id: str, chunks: list[dict]) -> list[dict]:
         for chunk in chunks:
             chunk["metadata"]["source"] = "demo.md"
+        return chunks
 
     kb._get_or_create_milvus_collection = get_collection
     kb._hydrate_chunk_sources = hydrate_chunk_sources
@@ -826,3 +827,84 @@ def test_collection_supports_bm25_requires_analyzed_content_sparse_field_and_fun
     collection = type("Collection", (), {"schema": schema})()
 
     assert kb._collection_supports_bm25(collection)
+
+
+async def test_hydrate_chunk_sources_filters_orphaned_file_chunks(monkeypatch):
+    """已从 PG 删除的文件（孤儿向量）不能出现在检索结果中。"""
+    file_repo = FakeKnowledgeFileRepository(
+        {
+            "file-live": make_file_record(file_id="file-live", filename="live.md"),
+        }
+    )
+    patch_file_repository(monkeypatch, file_repo)
+    kb = MilvusKB.__new__(MilvusKB)
+
+    chunks = [
+        {"metadata": {"file_id": "file-live"}, "content": "live content", "score": 0.9},
+        {"metadata": {"file_id": "file-deleted"}, "content": "orphan content", "score": 0.8},
+    ]
+
+    result = await kb._hydrate_chunk_sources("db", chunks)
+
+    assert len(result) == 1
+    assert result[0]["metadata"]["file_id"] == "file-live"
+    assert result[0]["metadata"]["source"] == "live.md"
+
+
+async def test_hydrate_chunk_sources_returns_all_chunks_when_no_orphans(monkeypatch):
+    """所有 file_id 都在 PG 中时行为不变，只补充 source 字段。"""
+    file_repo = FakeKnowledgeFileRepository(
+        {
+            "file-a": make_file_record(file_id="file-a", filename="a.md"),
+            "file-b": make_file_record(file_id="file-b", filename="b.md"),
+        }
+    )
+    patch_file_repository(monkeypatch, file_repo)
+    kb = MilvusKB.__new__(MilvusKB)
+
+    chunks = [
+        {"metadata": {"file_id": "file-a"}, "content": "a", "score": 0.9},
+        {"metadata": {"file_id": "file-b"}, "content": "b", "score": 0.8},
+    ]
+
+    result = await kb._hydrate_chunk_sources("db", chunks)
+
+    assert len(result) == 2
+    assert result[0]["metadata"]["source"] == "a.md"
+    assert result[1]["metadata"]["source"] == "b.md"
+
+
+async def test_query_filters_orphaned_chunks_from_search_results(monkeypatch):
+    """端到端：Milvus 返回孤儿向量时，aquery 最终结果不包含已删除文件的内容。"""
+    file_repo = FakeKnowledgeFileRepository(
+        {
+            "file-live": make_file_record(file_id="file-live", filename="live.md"),
+        }
+    )
+    patch_file_repository(monkeypatch, file_repo)
+
+    class OrphanCollection(FakeCollection):
+        """模拟 Milvus 中残留已删除文件的向量。"""
+
+        def search(self, **kwargs):
+            self.search_calls.append(kwargs)
+            return [
+                [
+                    FakeHit("live content", 0.9, file_id="file-live"),
+                    FakeHit("orphan content", 0.85, file_id="file-deleted"),
+                ]
+            ]
+
+    kb = MilvusKB.__new__(MilvusKB)
+    kb._get_embedding_function = lambda embedding_model_spec, **kwargs: lambda texts: [[0.1, 0.2] for _ in texts]
+
+    async def get_collection(kb_id: str, embedding_model_spec: str | None):
+        del kb_id, embedding_model_spec
+        return OrphanCollection()
+
+    kb._get_or_create_milvus_collection = get_collection
+
+    chunks = await kb.aquery("query", "db", config=make_query_config())
+
+    assert len(chunks) == 1
+    assert chunks[0]["content"] == "live content"
