@@ -1129,6 +1129,7 @@ async def stream_agent_chat(
             callbacks=callbacks,
             metadata=langfuse_run.metadata,
             tags=langfuse_run.tags,
+            run_name=agent_item.name or agent_item.slug,
             on_prepared=on_prepared,
         )
         async with aclosing(stream_source):
@@ -1361,6 +1362,7 @@ async def stream_agent_resume(
         callbacks=callbacks,
         metadata=langfuse_run.metadata,
         tags=langfuse_run.tags,
+        run_name=agent_item.name or agent_item.slug,
         on_prepared=on_prepared,
     )
 
