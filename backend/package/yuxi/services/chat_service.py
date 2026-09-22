@@ -1181,6 +1181,11 @@ async def stream_agent_chat(
 
                 is_subagent_chunk = bool(chunk_thread_id and chunk_thread_id != thread_id)
                 if model_audit is not None and not is_subagent_chunk:
+                    event_name = msg.get("event") if isinstance(msg, dict) else None
+                    logger.debug(
+                        f"[audit-flow] run={meta.get('run_id')} thread={thread_id} chunk_thread={chunk_thread_id} "
+                        f"event={event_name} namespace={namespace} msg_id={msg.get('id') if isinstance(msg, dict) else None}"
+                    )
                     await model_audit.consume(msg, metadata)
                 stream_events = _message_payload_yuxi_events(
                     msg,

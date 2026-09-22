@@ -9,6 +9,7 @@ from typing import Any
 
 from yuxi.repositories.model_message_audit_repository import ModelMessageAuditRepository
 from yuxi.storage.postgres.manager import pg_manager
+from yuxi.utils.logging_config import logger
 
 
 @dataclass(slots=True)
@@ -43,11 +44,20 @@ class ModelMessageAuditCollector:
         event_name = message["event"]
 
         if event_name == "message-start":
+            logger.debug(
+                f"[audit] run={self.run_id} thread={self.thread_id} event=message-start "
+                f"key={key} namespace={namespace} msg_id={message.get('id')}"
+            )
             await self._start(message, metadata, stream_event, key, namespace)
             return
 
         operation = self._operations.get(key)
         if operation is None:
+            if event_name in {"content-block-delta", "content-block-finish", "message-finish"}:
+                logger.debug(
+                    f"[audit] run={self.run_id} thread={self.thread_id} event={event_name} "
+                    f"DROP key={key} namespace={namespace} (no matching message-start)"
+                )
             return
 
         if event_name == "content-block-delta":
@@ -107,6 +117,10 @@ class ModelMessageAuditCollector:
                 operation_id=operation_id,
                 monotonic_started_at=monotonic_started_at if created else None,
             )
+            logger.debug(
+                f"[audit] run={self.run_id} thread={self.thread_id} message-start OK "
+                f"operation_id={operation_id} key={key} created={created}"
+            )
 
     async def _finish(
         self,
@@ -146,6 +160,11 @@ class ModelMessageAuditCollector:
                 },
             )
         self._operations.pop(key, None)
+        logger.debug(
+            f"[audit] run={self.run_id} thread={self.thread_id} message-finish OK "
+            f"operation_id={operation.operation_id} key={key} "
+            f"tool_calls={len(tool_calls)} content_len={len(''.join(operation.content_parts))}"
+        )
 
     @staticmethod
     def _operation_key(metadata: dict[str, Any], namespace: list[str]) -> tuple[str, str]:
