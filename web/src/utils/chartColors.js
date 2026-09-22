@@ -23,7 +23,7 @@ const buildColorPalette = () => {
 
     // Base chart colors - using new color system
     const baseVars = [
-      ['--main-500', '#3996ae'],
+      ['--main-500', '#0066f5'],
       ['--color-success-500', '#52c41a'],
       ['--color-warning-500', '#faad14'],
       ['--color-error-500', '#ff4d4f'],
@@ -58,7 +58,7 @@ const buildColorPalette = () => {
     console.warn('Failed to build color palette from CSS variables, using fallback:', e)
     // Fallback palette
     colorPalette = [
-      '#3996ae',
+      '#0066f5',
       '#52c41a',
       '#faad14',
       '#ff4d4f',

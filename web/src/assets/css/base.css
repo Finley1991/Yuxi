@@ -1,47 +1,46 @@
-/* color palette from <https://github.com/vuejs/theme> */
-/* https://material-foundation.github.io/material-theme-builder/ */
+/* color palette inspired by Sina Finance AI (https://ai.finance.sina.cn/) */
 :root {
-  --main-1000: #01151f;
-  --main-900: #023944;
-  --main-800: #035065;
-  --main-700: #046a82;
-  --main-600: #24839a;
-  --main-500: #3996ae;
-  --main-400: #5faec2;
-  --main-300: #82c3d6;
-  --main-200: #a3d8e8;
-  --main-100: #c4eaf5;
-  --main-50: #e1f6fb;
-  --main-40: #eaf3f5;
-  --main-30: #f7fbfd;
-  --main-20: #f6f9fa;
-  --main-10: #fafcfd;
-  --main-5: #fcfefe;
-  --main-1: #fefefe;
+  --main-1000: #0a1f4d;
+  --main-900: #0d2a6b;
+  --main-800: #103a8f;
+  --main-700: #145af0;
+  --main-600: #1f6df7;
+  --main-500: #0066f5;
+  --main-400: #4a8dfa;
+  --main-300: #7ab0fc;
+  --main-200: #a8ccfd;
+  --main-100: #c9defe;
+  --main-50: #eef0ff;
+  --main-40: #eaf3fe;
+  --main-30: #f2f6ff;
+  --main-20: #f6f9ff;
+  --main-10: #fafcff;
+  --main-5: #fcfdff;
+  --main-1: #fefeff;
   --main-0: #ffffff;
 
   /* 保留原有的 main 变量 */
   --main-color: var(--main-700);
-  --main-bright: #0188a6;
+  --main-bright: #0066f5;
 
-  /* 辅助色：暖金色系，基准 --second-500 #c9983c，刻度与 --main-* 对齐 */
-  --second-1000: #2e2108;
-  --second-900: #4a350d;
-  --second-800: #6b4d14;
-  --second-700: #8a641d;
-  --second-600: #a97e2b;
-  --second-500: #c9983c;
-  --second-400: #d4ac5f;
-  --second-300: #dfc183;
-  --second-200: #ead5a8;
-  --second-100: #f4e8cc;
-  --second-50: #faf3e2;
-  --second-40: #f6efe0;
-  --second-30: #fbf8f0;
-  --second-20: #faf7ee;
-  --second-10: #fcfbf6;
-  --second-5: #fefdfa;
-  --second-1: #fefefe;
+  /* 辅助色：浅蓝辅助系（来自新浪财经 AI 的 eef0ff / eaf3fe 系），刻度与 --main-* 对齐 */
+  --second-1000: #1a1f3f;
+  --second-900: #232a52;
+  --second-800: #2e3870;
+  --second-700: #3e4d96;
+  --second-600: #5266b8;
+  --second-500: #6c83d4;
+  --second-400: #8da3e0;
+  --second-300: #b0c0ec;
+  --second-200: #cdd8f4;
+  --second-100: #e1e8fb;
+  --second-50: #eef0ff;
+  --second-40: #eef0ff;
+  --second-30: #f2f4ff;
+  --second-20: #f6f7ff;
+  --second-10: #fafbff;
+  --second-5: #fcfcff;
+  --second-1: #fefeff;
   --second-0: #ffffff;
 
   --second-color: var(--second-600);

@@ -45,7 +45,7 @@ async def readiness_check(request: Request):
 async def discovery():
     """系统能力发现接口（公开接口）"""
     return {
-        "name": "Yuxi",
+        "name": "新浪财经芝麻AI",
         "version": get_version(),
         "api_prefix": "/api",
         "capabilities": {

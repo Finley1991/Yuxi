@@ -1,46 +1,46 @@
 /* 深色模式 */
 :root.dark {
-  --main-1000: #e1f6fb;
-  --main-900: #c4eaf5;
-  --main-800: #a3d8e8;
-  --main-700: #82c3d6;
-  --main-600: #5faec2;
-  --main-500: #4a9fb8;
-  --main-400: #3996ae;
-  --main-300: #24839a;
-  --main-200: #046a82;
-  --main-100: #035065;
-  --main-50: #023944;
-  --main-40: #01151f;
-  --main-30: #010d14;
-  --main-20: #010a0f;
-  --main-10: #00070a;
-  --main-5: #000405;
-  --main-1: #000102;
+  --main-1000: #c9defe;
+  --main-900: #a8ccfd;
+  --main-800: #7ab0fc;
+  --main-700: #4a8dfa;
+  --main-600: #1f6df7;
+  --main-500: #679efe;
+  --main-400: #5e96f7;
+  --main-300: #4a8dfa;
+  --main-200: #2d2f42;
+  --main-100: #232a52;
+  --main-50: #1a1c1d;
+  --main-40: #161819;
+  --main-30: #131516;
+  --main-20: #101113;
+  --main-10: #0c0e0f;
+  --main-5: #0a0b0c;
+  --main-1: #070808;
   --main-0: #000000;
 
   /* 保留原有的 main 变量 */
-  --main-color: #4a9fb8;
-  --main-bright: #5faec2;
+  --main-color: #679efe;
+  --main-bright: #7ab0fc;
 
-  /* 辅助色：暖金色系，深色模式反转刻度，与 --main-* 对齐 */
-  --second-1000: #faf3e2;
-  --second-900: #f4e8cc;
-  --second-800: #ead5a8;
-  --second-700: #dfc183;
-  --second-600: #d4ac5f;
-  --second-500: #d9ab52;
-  --second-400: #c9983c;
-  --second-300: #a97e2b;
-  --second-200: #8a641d;
-  --second-100: #6b4d14;
-  --second-50: #4a350d;
-  --second-40: #2e2108;
-  --second-30: #251a06;
-  --second-20: #1e1505;
-  --second-10: #150e03;
-  --second-5: #0e0902;
-  --second-1: #070401;
+  /* 辅助色：浅蓝系，深色模式反转刻度 */
+  --second-1000: #e1e8fb;
+  --second-900: #cdd8f4;
+  --second-800: #b0c0ec;
+  --second-700: #8da3e0;
+  --second-600: #6c83d4;
+  --second-500: #5266b8;
+  --second-400: #3e4d96;
+  --second-300: #2e3870;
+  --second-200: #232a52;
+  --second-100: #1a1f3f;
+  --second-50: #131726;
+  --second-40: #0e111e;
+  --second-30: #0c0e19;
+  --second-20: #0a0c16;
+  --second-10: #080911;
+  --second-5: #06070b;
+  --second-1: #030407;
   --second-0: #000000;
 
   --second-color: var(--second-500);

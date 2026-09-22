@@ -119,7 +119,7 @@ const CHUNK_NODE_LABEL = 'Chunk'
 const CHUNK_NODE_COLOR = '#8c8c8c'
 const CHUNK_MENTION_EDGE_LABEL = 'MENTIONS'
 const NODE_LABEL_COLORS = [
-  '#3996ae',
+  '#0066f5',
   '#5ad8a6',
   '#f6bd16',
   '#f27c7c',
@@ -131,7 +131,7 @@ const NODE_LABEL_COLORS = [
 ]
 const EDGE_LABEL_COLORS = [
   '#99add1',
-  '#3996ae',
+  '#0066f5',
   '#13c2c2',
   '#faad14',
   '#f27c7c',
