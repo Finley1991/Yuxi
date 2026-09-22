@@ -11,6 +11,10 @@ from yuxi import get_version
 from yuxi.models.providers.cache import model_cache
 from yuxi.utils import get_docker_safe_url, logger
 
+# 未显式配置 max_output 时的下限。DeepSeek/GLM 等 provider 默认仅 4K，生成
+# write_file 等长 tool_call arguments 时会被截断成 invalid_tool_calls。
+_DEFAULT_MAX_OUTPUT_TOKENS = 65_536
+
 
 def resolve_chat_model_spec(model_spec: str | None, *, fallback: str | None = None) -> str:
     """解析空模型配置，不吞掉已经配置但无效的模型值。
@@ -63,6 +67,18 @@ def load_chat_model(fully_specified_name: str | None, *, session_id: str | None 
         }
     )
     kwargs["metadata"] = metadata
+
+    # 为未显式配置 max_output 的模型给一个 64K 下限，避免 DeepSeek/GLM 等
+    # provider 默认 4K 输出在生成 write_file 等 tool_call arguments 时被截断，
+    # 进而触发 invalid_tool_calls（用户侧表现为 "arguments were malformed or
+    # truncated" / "Failed to parse tool call arguments as JSON"）。
+    if "max_completion_tokens" not in kwargs and "max_tokens" not in kwargs and "max_output_tokens" not in kwargs:
+        if info.provider_type == "anthropic":
+            kwargs["max_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+        elif info.provider_type == "gemini":
+            kwargs["max_output_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
+        else:
+            kwargs["max_completion_tokens"] = _DEFAULT_MAX_OUTPUT_TOKENS
 
     logger.debug(f"Loading model {fully_specified_name} with provider_type={info.provider_type}")
 
