@@ -856,10 +856,19 @@ async def save_messages_from_langgraph_state(
                     last_ai_message = terminal_ai_message
             if last_ai_message is not None:
                 has_tool_calls = bool((last_ai_message.extra_metadata or {}).get("tool_calls"))
+                # ModelRetryMiddleware 合成的错误消息属于内部失败信号，不下发给前端；
+                # run 终态本身已包含失败语义，用户侧不应看到 "Model call failed after ..."
+                # 这种 raw 错误文本。
+                is_model_retry_synthesized = _is_model_retry_synthesized_message(
+                    last_ai_message.extra_metadata or {}
+                )
                 should_publish = (
-                    last_ai_message.message_type != MODEL_AUDIT_MESSAGE_TYPE
-                    or complete_run
-                    or (interrupt_run and not has_tool_calls)
+                    not is_model_retry_synthesized
+                    and (
+                        last_ai_message.message_type != MODEL_AUDIT_MESSAGE_TYPE
+                        or complete_run
+                        or (interrupt_run and not has_tool_calls)
+                    )
                 )
                 if should_publish:
                     await conv_repo.publish_assistant_output(last_ai_message)

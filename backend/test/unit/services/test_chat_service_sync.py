@@ -760,6 +760,7 @@ async def test_completed_run_tolerates_model_retry_synthesized_final_message(
             return []
 
     saved_messages: list[SimpleNamespace] = []
+    published_messages: list[SimpleNamespace] = []
 
     class FakeConvRepo:
         def __init__(self, _db):
@@ -780,8 +781,8 @@ async def test_completed_run_tolerates_model_retry_synthesized_final_message(
             saved_messages.append(msg)
             return msg
 
-        async def publish_assistant_output(self, _msg):
-            pass
+        async def publish_assistant_output(self, msg):
+            published_messages.append(msg)
 
     fake_db = FakeDB()
     monkeypatch.setattr(svc, "AgentRunRepository", FakeRunRepo)
@@ -799,11 +800,12 @@ async def test_completed_run_tolerates_model_retry_synthesized_final_message(
         complete_run=True,
     )
 
-    # 合成错误消息应被保存为 text 类型，用户能看到失败原因
+    # 合成错误消息应被保存为 text 类型，但不 publish 给前端
     assert saved_messages, "expected synthesized error message to be saved"
     saved = saved_messages[-1]
     assert saved.message_type == "text"
     assert "Model call failed" in saved.content
+    assert not published_messages, "synthesized error message should not be published to frontend"
 
 
 @pytest.mark.asyncio
