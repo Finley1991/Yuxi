@@ -439,6 +439,33 @@ def _ai_message_content_and_tool_calls(msg_dict: dict) -> tuple[str, list[dict]]
     return content, list(tool_calls_data)
 
 
+# ModelRetryMiddleware 重试耗尽时合成的错误消息前缀。这条 AIMessage 没有经过
+# model lifecycle 事件流（无 message-start/finish），audit 表无对应 operation_id。
+# save_messages_from_langgraph_state 的一致性检查识别此前缀后跳过 raise，避免因
+# 模型 provider 瞬时错误（429/超时等）导致整个 Run 连锁崩溃。
+_MODEL_RETRY_FAILURE_PREFIX = "Model call failed after "
+
+
+def _is_model_retry_synthesized_message(msg_dict: dict) -> bool:
+    """识别 ModelRetryMiddleware._format_failure_message 合成的错误 AIMessage。
+
+    可识别特征（不依赖 content 前缀的弱信号补充判定）：
+    - content 是 string 且以 "Model call failed after " 开头
+    - response_metadata 为空 dict（真实 model 输出总有 finish_reason 等元数据）
+    - tool_calls 为空
+    """
+    content = msg_dict.get("content")
+    if not isinstance(content, str) or not content.startswith(_MODEL_RETRY_FAILURE_PREFIX):
+        return False
+    response_metadata = msg_dict.get("response_metadata")
+    if response_metadata is not None and response_metadata != {}:
+        return False
+    tool_calls = msg_dict.get("tool_calls")
+    if tool_calls:
+        return False
+    return True
+
+
 async def _project_ai_tool_calls(
     conv_repo: ConversationRepository,
     *,
@@ -756,6 +783,22 @@ async def save_messages_from_langgraph_state(
                     # Checkpoint 包含线程完整历史；同一来源键只对账最后一次 AIMessage。
                     state_model_messages[str(msg_id)] = msg_dict
                     continue
+                # ModelRetryMiddleware 重试耗尽时合成的错误 AIMessage 没有 lifecycle
+                # 事件，audit 表无记录；必须放在 current_model_audits continue 之前，
+                # 否则会被 continue 跳过而丢失保存。识别后保存为 text 消息让用户看到
+                # 失败原因，一致性检查也会跳过 raise。
+                if _is_model_retry_synthesized_message(msg_dict):
+                    last_ai_message = await _save_ai_message(
+                        conv_repo,
+                        thread_id,
+                        msg_dict,
+                        trace_info=trace_info,
+                        run_id=run_id,
+                        request_id=request_id,
+                        commit=run_id is None,
+                        project_tool_calls=run_id is None,
+                    )
+                    continue
                 if current_model_audits or msg_id in existing_ids:
                     continue
                 last_ai_message = await _save_ai_message(
@@ -804,8 +847,13 @@ async def save_messages_from_langgraph_state(
             if current_model_audits and (complete_run or interrupt_run):
                 terminal_ai_message = reconciled_audits.get(last_state_ai_id or "")
                 if complete_run and terminal_ai_message is None:
-                    raise ValueError("最终 State AIMessage 无法与当前 Run 的 Model lifecycle 事实关联")
-                last_ai_message = terminal_ai_message
+                    # ModelRetryMiddleware 合成的错误 AIMessage 没有对应 audit 记录，
+                    # 此时 last_ai_message 已被 _save_ai_message 保存为 text 消息。
+                    # 不 raise，让合成错误消息正常下发，避免子运行失败连锁主运行。
+                    if last_ai_message is None:
+                        raise ValueError("最终 State AIMessage 无法与当前 Run 的 Model lifecycle 事实关联")
+                else:
+                    last_ai_message = terminal_ai_message
             if last_ai_message is not None:
                 has_tool_calls = bool((last_ai_message.extra_metadata or {}).get("tool_calls"))
                 should_publish = (

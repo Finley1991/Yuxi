@@ -683,6 +683,130 @@ async def test_completed_run_rejects_unmatched_final_state_message(monkeypatch: 
 
 
 @pytest.mark.asyncio
+async def test_completed_run_tolerates_model_retry_synthesized_final_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ModelRetryMiddleware 合成的错误 AIMessage 无 lifecycle 事件，不应触发一致性 raise。
+
+    场景：模型 provider 429/超时等瞬时错误，ModelRetryMiddleware 重试耗尽后合成
+    "Model call failed after N attempts with ..." AIMessage 写进 state。这条消息
+    没有 message-start/finish 事件，audit 表无记录。一致性检查应识别并跳过 raise，
+    让合成错误消息正常保存并展示给用户。
+    """
+    audit_message = SimpleNamespace(
+        id=9,
+        operation_id="lc_run--known",
+        content="",
+        extra_metadata={},
+        execution_status="completed",
+        message_type="model_audit",
+        conversation_id=1,
+    )
+
+    synthesized_content = (
+        "Model call failed after 3 attempts with OpenAIRateLimitError: "
+        "Error code: 429 - {'error': {'code': 'ModelAccountTpmRateLimitExceeded'}}"
+    )
+
+    class FakeDB:
+        async def commit(self):
+            pass
+
+        async def rollback(self):
+            pass
+
+        async def flush(self):
+            pass
+
+    class FakeGraph:
+        async def aget_state(self, _config):
+            return SimpleNamespace(
+                values={
+                    "messages": [
+                        AIMessage(content="known", id="lc_run--known"),
+                        AIMessage(
+                            content=synthesized_content,
+                            id="synthesized-uuid-not-lc-run",
+                        ),
+                    ]
+                }
+            )
+
+    class FakeAuditRepo:
+        def __init__(self, _db):
+            pass
+
+        async def list_for_run(self, _run_id):
+            return [audit_message]
+
+        async def get(self, *, run_id, operation_id):
+            assert run_id == "run-1"
+            return audit_message if operation_id == "lc_run--known" else None
+
+    class FakeRunRepo:
+        def __init__(self, _db):
+            pass
+
+        async def lock_output_persistence(self, *_args, **_kwargs):
+            return object()
+
+        async def set_output_message(self, *_args, **_kwargs):
+            pass
+
+        async def set_terminal_status(self, *_args, **_kwargs):
+            return SimpleNamespace(status="completed"), True
+
+        async def cancel_active_execution_tree_descendants(self, _run):
+            return []
+
+    saved_messages: list[SimpleNamespace] = []
+
+    class FakeConvRepo:
+        def __init__(self, _db):
+            self.db = _db
+            self.tool_calls: list = []
+
+        async def get_message_source_ids_by_thread_id(self, _thread_id):
+            return set()
+
+        async def add_message_by_thread_id(self, *, thread_id, role, content, message_type, extra_metadata, run_id, request_id, commit, **_kwargs):
+            msg = SimpleNamespace(
+                id=100,
+                content=content,
+                extra_metadata=extra_metadata or {},
+                message_type=message_type,
+                conversation_id=1,
+            )
+            saved_messages.append(msg)
+            return msg
+
+        async def publish_assistant_output(self, _msg):
+            pass
+
+    fake_db = FakeDB()
+    monkeypatch.setattr(svc, "AgentRunRepository", FakeRunRepo)
+    monkeypatch.setattr(svc, "ModelMessageAuditRepository", FakeAuditRepo)
+    monkeypatch.setattr(svc, "ToolMessageAuditRepository", _EmptyToolAuditRepo)
+
+    # 不应 raise
+    await svc.save_messages_from_langgraph_state(
+        state=await FakeGraph().aget_state({}),
+        thread_id="thread-1",
+        conv_repo=FakeConvRepo(fake_db),
+        run_id="run-1",
+        request_id="request-1",
+        worker_id="worker-1",
+        complete_run=True,
+    )
+
+    # 合成错误消息应被保存为 text 类型，用户能看到失败原因
+    assert saved_messages, "expected synthesized error message to be saved"
+    saved = saved_messages[-1]
+    assert saved.message_type == "text"
+    assert "Model call failed" in saved.content
+
+
+@pytest.mark.asyncio
 async def test_interrupted_run_does_not_bind_older_reconciled_model_audit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
